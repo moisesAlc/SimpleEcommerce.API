@@ -46,7 +46,7 @@ namespace SimpleEcommerce.API.Controllers
 		public IActionResult Insert([FromBody]Usuario usuario)
 		{
 			_repository.Insert(usuario);
-			return Ok();
+			return Ok(usuario);
 		}
 
 		[HttpPut]
