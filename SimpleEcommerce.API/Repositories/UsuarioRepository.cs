@@ -1,54 +1,54 @@
-﻿using SimpleEcommerce.API.Models;
-using System;
+﻿using Dapper;
+using SimpleEcommerce.API.Models;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace SimpleEcommerce.API.Repositories
 {
-	
+
 	public class UsuarioRepository : IUsuarioRepository
 	{
-		static private List<Usuario> _db = new List<Usuario>()
+		private IDbConnection _connection;
+
+		public UsuarioRepository()
 		{
-			new Usuario(){ Id=1, Nome="Felipe", Email="felipe2345@gmail.com"},
-			new Usuario(){ Id=2, Nome="Marcelo Rodrigues", Email="marcelo2345@gmail.com"},
-			new Usuario(){ Id=3, Nome="Jéssica Miranda", Email="jessica.miranda2345@gmail.com"},
-		};
+			_connection = new SqlConnection(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=SimpleEcommerce;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False");
+		}
+
 		public List<Usuario> Get()
 		{
-			return _db;
+			return _connection.Query<Usuario>("SELECT * FROM Usuarios").ToList();
 		}
 
 		public Usuario Get(int id)
 		{
-			return _db.FirstOrDefault(u => u.Id == id);
+			return _connection.QuerySingleOrDefault<Usuario>("SELECT * FROM Usuarios WHERE id = @Id", new { Id = id });
 		}
 
 		public void Insert(Usuario usuario)
 		{
-			Usuario ultimoUsuario = _db.LastOrDefault();
-			if (ultimoUsuario == null)
-			{
-				usuario.Id = 1;
-			}
-			else
-			{
-				usuario.Id = ultimoUsuario.Id;
-				usuario.Id++;
-
-			}
-			_db.Add(usuario);
+			string sql = "INSERT INTO Usuarios " + "(Nome, Email, Sexo, RG, CPF, NomeMae, SituacaoCadastro, DataCadastro) " + "VALUES " + "(@Nome, @Email, @Sexo, @RG, @CPF, @NomeMae, @SituacaoCadastro, @DataCadastro)" 
+				+ ";" 
+				+ "SELECT CAST( SCOPE_IDENTITY() AS INT);";
+			
+			usuario.Id = _connection.Query<int>(sql, usuario).Single();
 		}
 
 		public void Update(Usuario usuario)
 		{
-			_db.Remove(_db.FirstOrDefault(u => u.Id == usuario.Id));
-			_db.Add(usuario);
+			string sql = "UPDATE Usuarios SET Nome = " +
+				"@Nome, Email = @Email, Sexo = @Sexo, RG = @RG, " +
+				"CPF = @CPF, NomeMae = @NomeMae, SituacaoCadastro = @SituacaoCadastro, DataCadastro = @DataCadastro " +
+				"WHERE Id = @Id;";
+			_connection.Execute(sql, usuario);
 		}
+
 		public void Delete(int id)
 		{
-			_db.Remove(_db.FirstOrDefault(u => u.Id == id));
+			_connection.Execute("DELETE FROM Usuarios WHERE Id = @Id", new { Id = id });
 		}
+
 	}
 }
