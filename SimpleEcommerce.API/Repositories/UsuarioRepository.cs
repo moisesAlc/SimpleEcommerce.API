@@ -29,7 +29,7 @@ namespace SimpleEcommerce.API.Repositories
 		{
 			return _connection.Query<Usuario, Contato, Usuario>(
 				// query com 3 objetos (def no ctor)
-				"SELECT * FROM Usuarios as U LEFT JOIN Contatos C ON C.UsuarioId = U.Id WHERE U.Id = @Id;", 
+				"SELECT * FROM Usuarios as U LEFT JOIN Contatos C ON C.UsuarioId = U.Id WHERE U.Id = @Id;",
 				/* +1 param -> função anônima que vai mapear,
 				 * para cada linha da query acima, essa f. anonima será executada */
 				(usuario, contato) =>
@@ -69,7 +69,7 @@ namespace SimpleEcommerce.API.Repositories
 
 				transaction.Commit();
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				try
 				{
@@ -79,22 +79,59 @@ namespace SimpleEcommerce.API.Repositories
 				{
 					//@TODO qual é a melhor forma de tratar?
 				}
-				
+
 			}
 			finally
 			{
 				_connection.Close();
 			}
-			
+
 		}
 
 		public void Update(Usuario usuario)
 		{
-			string sql = "UPDATE Usuarios SET Nome = " +
-				"@Nome, Email = @Email, Sexo = @Sexo, RG = @RG, " +
-				"CPF = @CPF, NomeMae = @NomeMae, SituacaoCadastro = @SituacaoCadastro, DataCadastro = @DataCadastro " +
-				"WHERE Id = @Id;";
-			_connection.Execute(sql, usuario);
+			_connection.Open();
+			var transaction = _connection.BeginTransaction();
+
+			try
+			{
+				string sqlUsuario =
+					"UPDATE Usuarios SET " +
+					"Nome = @Nome, Email = @Email, Sexo = @Sexo, RG = @RG, " +
+					"CPF = @CPF, NomeMae = @NomeMae, " +
+					"SituacaoCadastro = @SituacaoCadastro, " +
+					"DataCadastro = @DataCadastro " +
+					"WHERE Id = @Id;";
+				_connection.Execute(sqlUsuario, usuario, transaction);
+
+				if (usuario.Contato != null)
+				{
+					string sqlContato =
+					"UPDATE Contatos SET " +
+					"UsuarioId = @UsuarioId, " +
+					"Telefone = @Telefone, " +
+					"Celular = @Celular " +
+					"WHERE Id = @Id";
+					_connection.Execute(sqlContato, usuario.Contato, transaction);
+
+					transaction.Commit();
+				}
+			}
+			catch (Exception)
+			{
+				try
+				{
+					transaction.Rollback();
+				}
+				catch (Exception)
+				{
+					//@TODO qual é a melhor forma de tratar?
+				}
+			}
+			finally
+			{
+				_connection.Close();
+			}
 		}
 
 		public void Delete(int id)
