@@ -21,7 +21,33 @@ namespace SimpleEcommerce.API.Repositories
 		// não vai fazer JOIN aqui por enquanto, só qdo busca por id
 		public List<Usuario> Get()
 		{
-			return _connection.Query<Usuario>("SELECT * FROM Usuarios").ToList();
+			//return _connection.Query<Usuario>("SELECT * FROM Usuarios").ToList();
+
+			List<Usuario> usuarios = new List<Usuario>();
+
+			string sql = "SELECT * FROM Usuarios as U " +
+				"LEFT JOIN Contatos C ON C.UsuarioId = U.Id " +
+				"LEFT JOIN EnderecosEntrega EE On EE.UsuarioId = U.Id";
+
+			_connection.Query<Usuario, Contato, EnderecoEntrega, Usuario>(sql,
+				(usuario, contato, enderecoEntrega) =>
+				{
+					if ( usuarios.SingleOrDefault(us => us.Id == usuario.Id) == null)
+					{
+						usuario.EnderecosEntrega = new List<EnderecoEntrega>();
+						usuario.Contato = contato;
+						usuarios.Add(usuario);
+					}
+					else
+					{
+						usuario = usuarios.SingleOrDefault(us => us.Id == usuario.Id);
+					}
+
+					usuario.EnderecosEntrega.Add(enderecoEntrega);
+					return usuario; // aqui posso retornar qualquer coisa, o que 
+					// importa é o próximo retorno
+				});
+			return usuarios;
 		}
 
 
