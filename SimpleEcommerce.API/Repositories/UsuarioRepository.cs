@@ -53,18 +53,32 @@ namespace SimpleEcommerce.API.Repositories
 
 		public Usuario Get(int id)
 		{
-			return _connection.Query<Usuario, Contato, Usuario>(
-				// query com 3 objetos (def no ctor)
-				"SELECT * FROM Usuarios as U LEFT JOIN Contatos C ON C.UsuarioId = U.Id WHERE U.Id = @Id;",
-				/* +1 param -> função anônima que vai mapear,
-				 * para cada linha da query acima, essa f. anonima será executada */
-				(usuario, contato) =>
+			List<Usuario> usuarios = new List<Usuario>();
+
+			string sql = "SELECT * FROM Usuarios as U " +
+				"LEFT JOIN Contatos C ON C.UsuarioId = U.Id " +
+				"LEFT JOIN EnderecosEntrega EE On EE.UsuarioId = U.Id " +
+				"WHERE U.Id = @Id";
+
+			_connection.Query<Usuario, Contato, EnderecoEntrega, Usuario>(sql,
+				(usuario, contato, enderecoEntrega) =>
 				{
-					usuario.Contato = contato; // vai adicionar as infos de contato com as infos só de usuario (sem as infos de contato)
-					return usuario;
-				},
-				new { Id = id }
-				).SingleOrDefault();
+					if (usuarios.SingleOrDefault(us => us.Id == usuario.Id) == null)
+					{
+						usuario.EnderecosEntrega = new List<EnderecoEntrega>();
+						usuario.Contato = contato;
+						usuarios.Add(usuario);
+					}
+					else
+					{
+						usuario = usuarios.SingleOrDefault(us => us.Id == usuario.Id);
+					}
+
+					usuario.EnderecosEntrega.Add(enderecoEntrega);
+					return usuario; // aqui posso retornar qualquer coisa, o que 
+									// importa é o próximo retorno
+				}, new { Id = id });
+			return usuarios.SingleOrDefault();
 		}
 
 		public void Insert(Usuario usuario)
