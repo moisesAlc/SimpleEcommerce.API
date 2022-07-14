@@ -107,6 +107,20 @@ namespace SimpleEcommerce.API.Repositories
 					usuario.Contato.Id = _connection.Query<int>(sqlContato, usuario.Contato, transaction).Single();
 				}
 
+				if (usuario.EnderecosEntrega != null && usuario.EnderecosEntrega.Count > 0)
+				{
+					foreach (var enderecoEntrega in usuario.EnderecosEntrega)
+					{
+						enderecoEntrega.UsuarioId = usuario.Id;
+						string sqlEndereco = "INSERT INTO EnderecosEntrega " +
+							"( UsuarioId, NomeEndereco, CEP, Estado, Cidade, Bairro, Endereco, Numero, Complemento) " +
+							" VALUES " +
+							"( @UsuarioId, @NomeEndereco, @CEP, @Estado, @Cidade, @Bairro, @Endereco, @Numero, @Complemento) ;" +
+							"SELECT CAST(SCOPE_IDENTITY() AS INT);";
+						enderecoEntrega.Id = _connection.Query<int>(sqlEndereco, usuario.EnderecosEntrega, transaction).Single();
+					}
+				}
+
 				transaction.Commit();
 			}
 			catch (Exception e)
