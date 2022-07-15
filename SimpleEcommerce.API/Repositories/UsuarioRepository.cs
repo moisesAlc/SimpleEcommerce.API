@@ -168,6 +168,23 @@ namespace SimpleEcommerce.API.Repositories
 					"WHERE Id = @Id";
 					_connection.Execute(sqlContato, usuario.Contato, transaction);
 
+					string sqlDeletarEnderecosEntrega = "DELETE FROM EnderecosEntrega WHERE UsuarioId = @Id";
+					_connection.Execute(sqlDeletarEnderecosEntrega, usuario, transaction);
+
+					if (usuario.EnderecosEntrega != null && usuario.EnderecosEntrega.Count > 0)
+					{
+						foreach (var enderecoEntrega in usuario.EnderecosEntrega)
+						{
+							enderecoEntrega.UsuarioId = usuario.Id;
+							string sqlEndereco = "INSERT INTO EnderecosEntrega " +
+								"( UsuarioId, NomeEndereco, CEP, Estado, Cidade, Bairro, Endereco, Numero, Complemento) " +
+								" VALUES " +
+								"( @UsuarioId, @NomeEndereco, @CEP, @Estado, @Cidade, @Bairro, @Endereco, @Numero, @Complemento) ;" +
+								"SELECT CAST(SCOPE_IDENTITY() AS INT);";
+							enderecoEntrega.Id = _connection.Query<int>(sqlEndereco, usuario.EnderecosEntrega, transaction).Single();
+						}
+					}
+
 					transaction.Commit();
 				}
 			}
