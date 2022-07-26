@@ -25,15 +25,19 @@ namespace SimpleEcommerce.API.Repositories
 
 			List<Usuario> usuarios = new List<Usuario>();
 
-			string sql = "SELECT * FROM Usuarios as U " +
+			string sql = "SELECT U.*, C.*, EE.*, D.* FROM Usuarios as U " +
 				"LEFT JOIN Contatos C ON C.UsuarioId = U.Id " +
-				"LEFT JOIN EnderecosEntrega EE On EE.UsuarioId = U.Id";
+				"LEFT JOIN EnderecosEntrega EE On EE.UsuarioId = U.Id " +
+				"LEFT JOIN UsuariosDepartamentos UD on UD.UsuarioId = U.Id " +
+				"LEFT JOIN Departamentos D on UD.DepartamentoId = D.Id";
 
-			_connection.Query<Usuario, Contato, EnderecoEntrega, Usuario>(sql,
-				(usuario, contato, enderecoEntrega) =>
+			_connection.Query<Usuario, Contato, EnderecoEntrega, Departamento, Usuario>(sql,
+				(usuario, contato, enderecoEntrega, departamento) =>
 				{
-					if ( usuarios.SingleOrDefault(us => us.Id == usuario.Id) == null)
+					// verificação do usuário
+					if (usuarios.SingleOrDefault(us => us.Id == usuario.Id) == null)
 					{
+						usuario.Departamentos = new List<Departamento>();
 						usuario.EnderecosEntrega = new List<EnderecoEntrega>();
 						usuario.Contato = contato;
 						usuarios.Add(usuario);
@@ -43,13 +47,23 @@ namespace SimpleEcommerce.API.Repositories
 						usuario = usuarios.SingleOrDefault(us => us.Id == usuario.Id);
 					}
 
-					usuario.EnderecosEntrega.Add(enderecoEntrega);
+					// verificação do endereço de entrega
+					if (usuario.EnderecosEntrega.SingleOrDefault(a => a.Id == enderecoEntrega.Id) == null)
+					{
+						 usuario.EnderecosEntrega.Add(enderecoEntrega);
+					}
+
+					// verificação do departamento
+					if (usuario.Departamentos.SingleOrDefault(a => a.Id == departamento.Id) == null)
+					{
+						usuario.Departamentos.Add(departamento);
+					}
+
 					return usuario; // aqui posso retornar qualquer coisa, o que 
-					// importa é o próximo retorno
+									// importa é o próximo retorno
 				});
 			return usuarios;
 		}
-
 
 		public Usuario Get(int id)
 		{
